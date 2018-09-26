@@ -27,14 +27,14 @@ def optimize_db(cursor):
     cursor.execute("PRAGMA temp_store = 2")
 
 
-def build_visit_id_index(cursor, tables):
-    """Build an index on the visit_id column of data tables"""
+def build_index(cursor, column, tables):
+    """Build an index on `column` for each table in `tables`"""
     if not type(tables) == list:
         tables = [tables]
     for table in tables:
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS %s_visit_id_index ON "
-            "%s(visit_id);" % (table, table)
+            "CREATE INDEX IF NOT EXISTS %s_%s_index ON "
+            "%s(%s);" % (table, column, table, column)
         )
 
 
