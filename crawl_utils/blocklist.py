@@ -1,6 +1,6 @@
-from urlparse import urlparse
+from six.moves.urllib.parse import urlparse
 
-import domain_utils as du
+from .domain import get_ps_plus_1
 
 
 def get_option_dict(request):
@@ -22,6 +22,6 @@ def get_option_dict(request):
     options["image"] = request['content_policy_type'] == 3
     options["script"] = request['content_policy_type'] == 2
     options["domain"] = urlparse(request['top_level_url']).hostname
-    options["third-party"] = du.get_ps_plus_1(
-        request['url']) != du.get_ps_plus_1(request['top_level_url'])
+    options["third-party"] = get_ps_plus_1(
+        request['url']) != get_ps_plus_1(request['top_level_url'])
     return options
