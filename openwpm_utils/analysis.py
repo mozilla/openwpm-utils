@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+
 from pandas import read_sql_query
 
 from .domain import get_ps_plus_1

@@ -5,7 +5,8 @@ from crawl_utils.domain import (
 
 
 def test_get_ps_plus_one_cloudfront():
-    assert get_ps_plus_1('https://my.domain.cloudfront.net') == 'domain.cloudfront.net'
+    assert get_ps_plus_1(
+        'https://my.domain.cloudfront.net') == 'domain.cloudfront.net'
 
 
 @pytest.mark.skip(reason="Currently not supported")
