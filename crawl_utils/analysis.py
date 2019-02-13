@@ -1,9 +1,8 @@
 import json
 from datetime import datetime
+from pandas import read_sql_query
 
-import pandas as pd
-
-import domain_utils as du
+from .domain import get_ps_plus_1
 
 
 def get_set_of_script_hosts_from_call_stack(call_stack):
@@ -150,7 +149,7 @@ def get_responses_from_visits(con, visit_ids):
             ON r.visit_id = sv.visit_id
             WHERE r.visit_id in %s;""" % visit_ids_str
 
-    return pd.read_sql_query(qry, con)
+    return read_sql_query(qry, con)
 
 
 def get_requests_from_visits(con, visit_ids):
@@ -164,13 +163,13 @@ def get_requests_from_visits(con, visit_ids):
             ON r.visit_id = sv.visit_id
             WHERE r.visit_id in %s;""" % visit_ids_str
 
-    return pd.read_sql_query(qry, con)
+    return read_sql_query(qry, con)
 
 
 def get_set_of_script_ps1s_from_call_stack(script_urls):
     if len(script_urls):
         return ", ".join(
-            set((du.get_ps_plus_1(x) or "") for x in script_urls.split(", ")))
+            set((get_ps_plus_1(x) or "") for x in script_urls.split(", ")))
     else:
         return ""
 
