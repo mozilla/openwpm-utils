@@ -3,15 +3,18 @@ from six.moves.urllib.parse import urlparse
 from .domain import get_ps_plus_1
 
 
-def get_option_dict(request):
+def get_option_dict(url, top_level_url, content_type):
     """Build an options dict for BlockListParser
 
     Parameters
     ----------
-    request : sqlite3.Row
-        A single HTTP request record pulled from OpenWPM's http_requests table
-    public_suffix_list : PublicSuffixList
-        An instance of PublicSuffixList()
+    url : string
+        The URL of the requested resource.
+    top_level_url : string
+        The URL of the top-level frame of the requested resource
+    content_type : int
+        An integer representing the content type of the load. Mapping given in:
+        https://searchfox.org/mozilla-central/source/dom/base/nsIContentPolicy.idl
 
     Returns
     -------
@@ -19,9 +22,8 @@ def get_option_dict(request):
         An "options" dictionary for use with BlockListParser
     """
     options = {}
-    options["image"] = request['content_policy_type'] == 3
-    options["script"] = request['content_policy_type'] == 2
-    options["domain"] = urlparse(request['top_level_url']).hostname
-    options["third-party"] = get_ps_plus_1(
-        request['url']) != get_ps_plus_1(request['top_level_url'])
+    options["image"] = content_type == 3
+    options["script"] = content_type == 2
+    options["domain"] = urlparse(top_level_url).hostname
+    options["third-party"] = get_ps_plus_1(url) != get_ps_plus_1(top_level_url)
     return options

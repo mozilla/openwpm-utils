@@ -13,7 +13,7 @@ setup(
     name='openwpm-utils',
     license='MPL 2.0',
     url='https://github.com/mozilla/openwpm-utils',
-    version='0.1.1',
+    version='0.1.2',
     packages=['openwpm_utils'],
 
     # Dependencies
