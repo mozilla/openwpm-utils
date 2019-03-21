@@ -220,7 +220,6 @@ def get_requests_from_visits(con, visit_ids):
     return read_sql_query(qry, con)
 
 
-
 def add_col_set_of_script_ps1s_from_call_stack(js_df):
     js_df['stack_script_ps1s'] =\
         js_df['stack_scripts'].map(get_set_of_script_ps1s_from_call_stack)
