@@ -83,6 +83,59 @@ def get_script_urls_from_call_stack_as_set(call_stack):
     return script_urls
 
 
+def get_ordered_script_urls_from_call_stack(call_stack):
+    """Return the urls of the scripts involved in the call stack as a
+    string. Preserve order in which the scripts appear in the call stack."""
+    if not call_stack:
+        return ""
+    return ", ".join(get_script_urls_from_call_stack_as_list(
+        call_stack))
+
+
+def get_script_urls_from_call_stack_as_list(call_stack):
+    """Return the urls of the scripts involved in the call stack as a list."""
+    script_urls = []
+    if not call_stack:
+        return script_urls
+    stack_frames = call_stack.strip().split("\n")
+    last_script_url = ""
+    for stack_frame in stack_frames:
+        script_url = stack_frame.rsplit(":", 2)[0].\
+            split("@")[-1].split(" line")[0]
+
+        if script_url != last_script_url:
+            script_urls.append(script_url)
+            last_script_url = script_url
+    return script_urls
+
+
+def get_set_of_script_ps1s_from_call_stack(script_urls):
+    if len(script_urls):
+        return ", ".join(
+            set((get_ps_plus_1(x) or "") for x in script_urls.split(", ")))
+    else:
+        return ""
+
+
+def get_ordered_script_ps1s_from_call_stack(call_stack):
+    """Return ordered list of script PS1s as they appear in the call stack."""
+    return get_ordered_script_ps1s_from_stack_script_urls(
+        get_ordered_script_urls_from_call_stack(call_stack))
+
+
+def get_ordered_script_ps1s_from_stack_script_urls(script_urls):
+    """Return ordered script PS1s as a string given a list of script URLs."""
+    script_ps1s = []
+    last_ps1 = None
+    for script_url in script_urls.split(", "):
+        ps1 = get_ps_plus_1(script_url) or ""
+        if ps1 != last_ps1:
+            script_ps1s.append(ps1)
+            last_ps1 = ps1
+
+    return ", ".join(script_ps1s)
+
+
 def add_col_bare_script_url(js_df):
     """Add a col for script URL without scheme, www and query."""
     js_df['bare_script_url'] =\
@@ -165,14 +218,6 @@ def get_requests_from_visits(con, visit_ids):
             WHERE r.visit_id in %s;""" % visit_ids_str
 
     return read_sql_query(qry, con)
-
-
-def get_set_of_script_ps1s_from_call_stack(script_urls):
-    if len(script_urls):
-        return ", ".join(
-            set((get_ps_plus_1(x) or "") for x in script_urls.split(", ")))
-    else:
-        return ""
 
 
 def add_col_set_of_script_ps1s_from_call_stack(js_df):
