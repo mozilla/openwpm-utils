@@ -1,5 +1,5 @@
 import pytest
-from crawl_utils.domain import (
+from openwpm_utils.domain import (
     get_ps_plus_1,
 )
 
