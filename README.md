@@ -1,11 +1,4 @@
+OpenWPM Utilities  [![Build Status](https://travis-ci.org/mozilla/openwpm-utils.svg?branch=master)](https://travis-ci.org/mozilla/openwpm-utils)
+-----------------
 
-## Build and run tests
-
-    $ python setup.py test
-
-Or
-
-    $ pip install -r requirements.txt
-    $ pip install -r requirements_test.txt
-    $ py.test
-
+A set of utilities for working with OpenWPM data. Documentation coming soon.
