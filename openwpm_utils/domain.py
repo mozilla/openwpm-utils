@@ -1,43 +1,72 @@
-from __future__ import absolute_import
-from __future__ import print_function
-import tempfile
-import codecs
-import os
-import six
+from __future__ import absolute_import, print_function
 
-from ipaddress import ip_address
 from functools import wraps
-from publicsuffix import PublicSuffixList, fetch
+from ipaddress import ip_address
+
+import six
+import tldextract
 from six.moves import range
 from six.moves.urllib.parse import urlparse
 
-# We cache the Public Suffix List in temp directory
-PSL_CACHE_LOC = os.path.join(tempfile.gettempdir(), 'public_suffix_list.dat')
 
-
-def get_psl(location=PSL_CACHE_LOC):
-    """
-    Grabs an updated public suffix list.
-    """
-    if not os.path.isfile(location):
-        psl_file = fetch()
-        with codecs.open(location, 'w', encoding='utf8') as f:
-            f.write(psl_file.read())
-    psl_cache = codecs.open(location, encoding='utf8')
-    return PublicSuffixList(psl_cache)
-
-
-def load_psl(function):
+def load_and_update_extractor(function):
     @wraps(function)
     def wrapper(*args, **kwargs):
-        if 'psl' not in kwargs:
-            if wrapper.psl is None:
-                wrapper.psl = get_psl()
-            return function(*args, psl=wrapper.psl, **kwargs)
+        if 'extractor' not in kwargs:
+            if wrapper.extractor is None:
+                extract_tld = tldextract.TLDExtract(
+                    include_psl_private_domains=True
+                )
+                extract_tld.update()
+                wrapper.extractor = extract_tld
+            return function(*args, extractor=wrapper.extractor, **kwargs)
         else:
             return function(*args, **kwargs)
-    wrapper.psl = None
+    wrapper.extractor = None
     return wrapper
+
+
+@load_and_update_extractor
+def get_etld_plus_1(url, prepend_scheme=True, **kwargs):
+    """Returns the eTLD+1 (aka PS+1) of the url. This will also return
+    an IP address if the hostname of the url is a valid
+    IP address.
+
+    Parameters
+    ----------
+    prepend_scheme : boolean, optional
+        If a scheme is not found in the url, prepend `http://` to avoid errors
+    kwargs
+        An (optional) tldextract::TLDExtract instance can be passed with
+        keyword `extractor`, otherwise we create and update one automatically.
+    """
+    if 'extractor' not in kwargs:
+        raise ValueError(
+            "A tldextract::TLDExtract instance must be passed using the "
+            "`extractor` keyword argument.")
+    hostname = urlparse(url).hostname
+    if is_ip_address(hostname):
+        return hostname
+    if hostname is None:
+        # Possible reasons hostname is None, `url` is:
+        # * malformed
+        # * a relative url
+        # * a `javascript:` or `data:` url
+        # * many others
+        return
+    parsed = kwargs['extractor'](hostname)
+    if parsed.domain == '':
+        return parsed.suffix
+    if parsed.suffix == '':
+        return
+    return "%s.%s" % (parsed.domain, parsed.suffix)
+
+
+def get_ps_plus_1(url, **kwargs):
+    """Returns the eTLD+1 (aka PS+1) of the url. This will also return
+    an IP address if the hostname of the url is a valid
+    IP address. Alias for `get_etld_plus_1`"""
+    return get_etld_plus_1(url, **kwargs)
 
 
 def is_ip_address(hostname):
@@ -51,34 +80,7 @@ def is_ip_address(hostname):
         return False
 
 
-@load_psl
-def get_ps_plus_1(url, **kwargs):
-    """
-    Returns the PS+1 of the url. This will also return
-    an IP address if the hostname of the url is a valid
-    IP address.
-
-    An (optional) PublicSuffixList object can be passed with keyword arg 'psl',
-    otherwise a version cached in the system temp directory is used.
-    """
-    if 'psl' not in kwargs:
-        raise ValueError(
-            "A PublicSuffixList must be passed as a keyword argument.")
-    hostname = urlparse(url).hostname
-    if is_ip_address(hostname):
-        return hostname
-    elif hostname is None:
-        # Possible reasons hostname is None, `url` is:
-        # * malformed
-        # * a relative url
-        # * a `javascript:` or `data:` url
-        # * many others
-        return
-    else:
-        return kwargs['psl'].get_public_suffix(hostname)
-
-
-@load_psl
+@load_and_update_extractor
 def hostname_subparts(url, include_ps=False, **kwargs):
     """
     Returns a list of slices of a url's hostname down to the PS+1
@@ -89,12 +91,13 @@ def hostname_subparts(url, include_ps=False, **kwargs):
         [a.b.c.d.com, b.c.d.com, c.d.com, d.com] if include_ps == False
         [a.b.c.d.com, b.c.d.com, c.d.com, d.com, com] if include_ps == True
 
-    An (optional) PublicSuffixList object can be passed with keyword arg 'psl'.
-    otherwise a version cached in the system temp directory is used.
+    An (optional) tldextract::TLDExtract instance can be passed with keyword
+    arg `extractor`, otherwise we create and update one automatically.
     """
-    if 'psl' not in kwargs:
+    if 'extractor' not in kwargs:
         raise ValueError(
-            "A PublicSuffixList must be passed as a keyword argument.")
+            "A tldextract::TLDExtract instance must be passed using the "
+            "`extractor` keyword argument.")
     hostname = urlparse(url).hostname
 
     # If an IP address, just return a single item list with the IP
@@ -102,22 +105,26 @@ def hostname_subparts(url, include_ps=False, **kwargs):
         return [hostname]
 
     subparts = list()
-    ps_plus_1 = kwargs['psl'].get_public_suffix(hostname)
+    parsed = kwargs['extractor'](hostname)
+    if parsed.domain == '':
+        ps_plus_1 = parsed.suffix
+    else:
+        ps_plus_1 = "%s.%s" % (parsed.domain, parsed.suffix)
 
     # We expect all ps_plus_1s to have at least one '.'
     # If they don't, the url was likely malformed, so we'll just return an
     # empty list
     if '.' not in ps_plus_1:
         return []
-    subdomains = hostname[:-(len(ps_plus_1)+1)].split('.')
+    subdomains = hostname[:-(len(ps_plus_1) + 1)].split('.')
     if subdomains == ['']:
         subdomains = []
     for i in range(len(subdomains)):
-        subparts.append('.'.join(subdomains[i:])+'.'+ps_plus_1)
+        subparts.append('.'.join(subdomains[i:]) + '.' + ps_plus_1)
     subparts.append(ps_plus_1)
     if include_ps:
         try:
-            subparts.append(ps_plus_1[ps_plus_1.index('.')+1:])
+            subparts.append(ps_plus_1[ps_plus_1.index('.') + 1:])
         except Exception:
             pass
     return subparts

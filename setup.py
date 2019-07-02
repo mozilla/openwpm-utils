@@ -2,8 +2,8 @@ from setuptools import setup
 
 with open('requirements.txt') as f:
     requirements = f.read().splitlines()
-with open('requirements_test.txt') as f:
-    test_requirements = f.read().splitlines()
+with open("README.md", "r") as f:
+    long_description = f.read()
 
 setup(
     # Meta
@@ -18,8 +18,7 @@ setup(
 
     # Dependencies
     install_requires=requirements,
-    tests_require=test_requirements,
-    setup_requires=['setuptools_scm', 'pytest-runner'],
+    setup_requires=['setuptools_scm'],
 
     # Packaging
     include_package_data=True,

@@ -1,6 +1,7 @@
+import zlib
+
 import jsbeautifier
 import plyvel
-import zlib
 
 # SQLite
 
@@ -17,7 +18,7 @@ def fetchiter(cursor, arraysize=10000):
 
 def list_placeholder(length, is_pg=False):
     """Returns a (?,?,?,?...) string of the desired length"""
-    return '(' + '?,'*(length-1) + '?)'
+    return '(' + '?,' * (length - 1) + '?)'
 
 
 def optimize_db(cursor):
@@ -48,7 +49,7 @@ def get_leveldb(db_path, compression='snappy'):
     """
     db = plyvel.DB(db_path,
                    lru_cache_size=10**9,
-                   write_buffer_size=128*10**4,
+                   write_buffer_size=128 * 10**4,
                    bloom_filter_bits=128,
                    compression=compression)
     return db
@@ -98,9 +99,9 @@ def get_url_content_with_hash(url, sqlite_cur, ldb_con,
             "SELECT content_hash FROM http_responses WHERE url = ? LIMIT 1;",
             (url,))
     content_hash = sqlite_cur.fetchone()
-    if (content_hash is None
-            or len(content_hash) == 0
-            or content_hash[0] is None):
+    if content_hash is None \
+            or len(content_hash) == 0 \
+            or content_hash[0] is None:
         return
     content_hash = content_hash[0]
     content = get_content(ldb_con, content_hash, beautify=beautify)
@@ -151,9 +152,9 @@ def get_channel_content_with_hash(visit_id, channel_id,
         (channel_id, visit_id)
     )
     content_hash = sqlite_cur.fetchone()
-    if (content_hash is None
-            or len(content_hash) == 0
-            or content_hash[0] is None):
+    if content_hash is None \
+            or len(content_hash) == 0 \
+            or content_hash[0] is None:
         return
     content_hash = content_hash[0]
     content = get_content(ldb_con, content_hash, beautify=beautify)
