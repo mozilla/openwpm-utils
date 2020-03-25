@@ -1,2 +1,0 @@
-pytest==3.7.4
-pytest-flake8==1.0.2

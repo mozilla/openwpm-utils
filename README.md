@@ -1,11 +1,15 @@
 
-## Build and run tests
+# `openwpm_utils`
 
-    $ python setup.py test
+A collection of utilities for working with OpenWPM datasets
+
+The domain\_utils are available as a standalone package [domain_utils](github.com/mozilla/domain_utils)
+
+
+## Installation
+
+    $ pip install openwpm-utils
 
 Or
 
-    $ pip install -r requirements.txt
-    $ pip install -r requirements_test.txt
-    $ py.test
-
+    $ python setup.py install
