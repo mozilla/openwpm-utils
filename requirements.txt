@@ -1,9 +1,8 @@
 boto3
-ipaddress
+domain_utils==0.3.0
 jsbeautifier
 pandas
 plyvel
-publicsuffix
 pyarrow
 pyspark
 s3fs
