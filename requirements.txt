@@ -1,9 +1,8 @@
 boto3
-domain_utils==0.3.0
+domain_utils
 jsbeautifier
 pandas
 plyvel
 pyarrow
 pyspark
 s3fs
-six
