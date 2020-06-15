@@ -34,8 +34,18 @@ class PySparkS3Dataset(object):
         self._sql_context = SQLContext(spark_context)
         self._s3_table_loc = "s3a://%s/%s/visits/%%s/" % (s3_bucket, s3_directory)
         self._s3_content_loc = "s3a://%s/%s/content/%%s.gz" % (s3_bucket, s3_directory)
+        self._incomplete_visit_ids = self.read_table(
+            "incomplete_visits", mode="all"
+        ).select("visit_id")
+        crawl_history = self.read_table("crawl_history", mode="all")
+        self._failed_visit_ids = (
+            get_worst_status_per_visit_id(crawl_history)
+            .where(F.col("worst_status") != "ok")
+            .select("visit_id")
+        )
 
-    def read_table(self, table_name, columns=None):
+
+    def read_table(self, table_name, columns=None, mode = "successful"):
         """Read `table_name` from OpenWPM dataset into a pyspark dataframe.
 
         Parameters
@@ -47,7 +57,22 @@ class PySparkS3Dataset(object):
         """
         table = self._sql_context.read.parquet(self._s3_table_loc % table_name)
         if columns is not None:
-            return table.select(columns)
+            table = table.select(columns)
+        if mode == "all":
+            return table
+        if mode == "failed":
+            return table.join(self._failed_visit_ids, "visit_id", how="inner").union(
+                table.join(self._incomplete_visit_ids, "visit_id", how="inner")
+            )
+        if mode == "successful":
+            return table.join(self._failed_visit_ids, "visit_id", how="leftanti").join(
+                self._incomplete_visit_ids, "visit_id", how="leftanti"
+            )
+        else:
+            raise AssertionError(
+                f"Mode was ${mode},"
+                "allowed modes are 'all', 'failed' and 'successful'"
+            )
         return table
 
     def read_content(self, content_hash):
