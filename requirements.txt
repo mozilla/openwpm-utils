@@ -7,3 +7,4 @@ pyarrow
 pyspark
 s3fs
 six
+abp-blocklist-parser
