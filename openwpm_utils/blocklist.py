@@ -14,8 +14,8 @@ raw_lists = {
 }
 # Initialize parsers
 blockers = [
-  abp_blocklist_parser.BlockListParser(requests.get(raw_lists["nocoin"]).content.decode()),
-  abp_blocklist_parser.BlockListParser(requests.get(raw_lists["ublock-resource-abuse"]).content.decode())
+  abp_blocklist_parser.BlockListParser(regexes=requests.get(raw_lists["nocoin"]).content.decode()),
+  abp_blocklist_parser.BlockListParser(regexes=requests.get(raw_lists["ublock-resource-abuse"]).content.decode())
 ]
 # Mapping from
 # https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/webRequest/ResourceType
