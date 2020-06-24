@@ -21,6 +21,13 @@ blockers = [
 # https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/webRequest/ResourceType
 # To 
 # https://help.eyeo.com/en/adblockplus/how-to-write-filters#options
+# With help from
+# https://github.com/gorhill/uBlock/blob/1d5800629aaca0d152127d844ca7f6cf975f2f68/src/js/static-net-filtering.js#L55
+# https://github.com/gorhill/uBlock/blob/1d5800629aaca0d152127d844ca7f6cf975f2f68/src/js/static-net-filtering.js#L107
+# Import both objects and use
+# let directMapping = {}
+# Object.entries(typeNameToTypeValue).forEach(k => {directMapping[k[0]]= typeValueToTypeName[k[1] >>4]})
+# to generate an object that represents the direct mapping between these types
 
 type_to_option = {
 "beacon":"ping",
