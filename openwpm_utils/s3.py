@@ -55,6 +55,10 @@ class PySparkS3Dataset(object):
             OpenWPM table to read
         columns : list of strings
             The set of columns to filter the parquet dataset by
+        mode : string
+            The valid values are "successful", "failed", "all"
+            Success is determined per visit_id. A visit_id is failed
+            if one of it's commands failed or if it's in the interrupted table
         """
         table = self._sql_context.read.parquet(self._s3_table_loc % table_name)
         if columns is not None:
@@ -125,10 +129,6 @@ class S3Dataset(object):
             OpenWPM table to read
         columns : list of strings
             The set of columns to filter the parquet dataset by
-        mode : string
-            The valid values are "successful", "failed", "all"
-            Success is determined per visit_id. A visit_id is failed
-            if one of it's commands failed or if it's in the interrupted table
         """
         return (
             pq.ParquetDataset(
