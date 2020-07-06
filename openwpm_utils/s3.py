@@ -114,17 +114,8 @@ class S3Dataset(object):
         self._s3_table_loc = "%s/%s/visits/%%s" % (s3_bucket, s3_directory)
         self._content_key = "%s/content/%%s.gz" % s3_directory
         self._s3fs = s3fs.S3FileSystem()
-        self._incomplete_visit_ids = self.read_table(
-            "incomplete_visits", mode="all"
-        ).select("visit_id")
-        crawl_history = self.read_table("crawl_history", mode="all")
-        self._failed_visit_ids = (
-            get_worst_status_per_visit_id(crawl_history)
-            .where(F.col("worst_status") != "ok")
-            .select("visit_id")
-        )
 
-    def read_table(self, table_name, columns=None, mode="successful"):
+    def read_table(self, table_name, columns=None):
         """Read `table_name` from OpenWPM dataset into a pyspark dataframe.
 
         Parameters
@@ -138,7 +129,7 @@ class S3Dataset(object):
             Success is determined per visit_id. A visit_id is failed
             if one of it's commands failed or if it's in the interrupted table
         """
-        df = (
+        return (
             pq.ParquetDataset(
                 self._s3_table_loc % table_name,
                 filesystem=self._s3fs,
@@ -147,21 +138,6 @@ class S3Dataset(object):
             .read(use_pandas_metadata=True, columns=columns)
             .to_pandas()
         )
-        if mode == "all":
-            return df
-        if mode == "failed":
-            return df.join(self._failed_visit_ids, "visit_id", how="inner").union(
-                df.join(self._incomplete_visit_ids, "visit_id", how="inner")
-            )
-        if mode == "successful":
-            return df.join(self._failed_visit_ids, "visit_id", how="leftanti").join(
-                self._incomplete_visit_ids, "visit_id", how="leftanti"
-            )
-        else:
-            raise AssertionError(
-                f"Mode was ${mode},"
-                "allowed modes are 'all', 'failed' and 'successful'"
-            )
 
     def collect_content(self, content_hash, beautify=False):
         """Collect content by directly connecting to S3 via boto3"""
