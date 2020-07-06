@@ -1,21 +1,21 @@
 import gzip
+from typing import List
 
 import boto3
 import jsbeautifier
 import pyarrow.parquet as pq
+import pyspark.sql.functions as F
 import s3fs
 import six
 from botocore.exceptions import ClientError
 from pyarrow.filesystem import S3FSWrapper  # noqa
 from pyspark.sql import SQLContext
-import pyspark.sql.functions as F
-
 
 from openwpm_utils.crawlhistory import get_worst_status_per_visit_id
 
 
 class PySparkS3Dataset(object):
-    def __init__(self, spark_context, s3_directory, s3_bucket="openwpm-crawls"):
+    def __init__(self, spark_context, s3_directory: str, s3_bucket:str="openwpm-crawls"):
         """Helper class to load OpenWPM datasets from S3 using PySpark
 
         Parameters
@@ -44,8 +44,9 @@ class PySparkS3Dataset(object):
             .select("visit_id")
         )
 
-
-    def read_table(self, table_name, columns=None, mode = "successful"):
+    def read_table(
+        self, table_name: str, columns: List[str] = None, mode: str = "successful"
+    ):
         """Read `table_name` from OpenWPM dataset into a pyspark dataframe.
 
         Parameters
