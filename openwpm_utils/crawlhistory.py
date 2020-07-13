@@ -35,7 +35,7 @@ def display_crawl_history_per_command_sequence(crawl_history, interrupted_visits
         Analyze crawl_history and interrupted_visits to display general
         success statistics
         This function should be given the all entries in the crawl_history and
-        interrupted_visits tableq
+        interrupted_visits table
     """
     crawl_history.groupBy("command").count().show()
 
@@ -100,10 +100,10 @@ def display_crawl_history_per_website(crawl_history, interrupted_visits):
     visit_id_website_status = visit_id_and_worst_status.join(
         visit_id_to_website, "visit_id"
     )
-    best_status_per_website = visit_id_website_status.groupBy("website").agg(
-        udf_reduce_to_best_command_status(F.collect_list("worst_status")).alias(
-            "best_status"
-        )
+    best_status_per_website = (
+        visit_id_website_status.groupBy("website")
+        .agg(F.collect_list("command_status").alias("command_status"))
+        .withColumn("best_status",reduce_to_best_command_status)
     )
     total_number_websites = best_status_per_website.count()
     print(f"There was an attempt to visit a total of {total_number_websites} websites")
