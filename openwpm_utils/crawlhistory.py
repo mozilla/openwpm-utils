@@ -12,12 +12,12 @@ reduce_to_worst_command_status = (
 
 
 reduce_to_best_command_status = (
-    F.when(F.array_contains("command_status", "critical"), "critical")
-    .when(F.array_contains("command_status", "ok"), "ok")
+    F.when(F.array_contains("command_status", "ok"), "ok")
     .when(F.array_contains("command_status", "timeout"), "timeout")
     .when(F.array_contains("command_status", "neterror"), "neterror")
+    .when(F.array_contains("command_status", "error"), "error")
     .otherwise("critical")
-    .alias("worst_status")
+    .alias("best_status")
 )
 
 
