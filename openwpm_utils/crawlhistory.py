@@ -22,6 +22,7 @@ reduce_to_best_command_status = (
 
 
 def get_worst_status_per_visit_id(crawl_history):
-    return crawl_history.groupBy("visit_id").agg(
-        reduce_to_worst_command_status(F.collect_list("command_status"))
-    )
+    """Adds column `worst_status`"""
+    return (crawl_history.groupBy("visit_id")
+            .agg(F.collect_list("command_status").alias("command_status"))
+            .withColumn("worst_status",reduce_to_worst_command_status))
