@@ -102,10 +102,12 @@ def display_crawl_history_per_website(crawl_history, interrupted_visits):
     )
     best_status_per_website = (
         visit_id_website_status.groupBy("website")
-        .agg(F.collect_list("command_status").alias("command_status"))
+        .agg(F.collect_list("worst_status").alias("command_status"))
         .withColumn("best_status",reduce_to_best_command_status)
     )
+
     total_number_websites = best_status_per_website.count()
+
     print(f"There was an attempt to visit a total of {total_number_websites} websites")
 
     print(
@@ -153,4 +155,6 @@ def display_crawl_history_per_website(crawl_history, interrupted_visits):
     multiple_successes.groupBy(
         F.col("count").alias("Number of successes")
     ).count().show()
+
+    print("A list of all websites that where successfully visited more than twice:")
     multiple_successes.filter("count > 2").show()
