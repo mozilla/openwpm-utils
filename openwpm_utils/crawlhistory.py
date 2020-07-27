@@ -31,11 +31,24 @@ def get_worst_status_per_visit_id(crawl_history):
 
 
 def display_crawl_history_per_command_sequence(crawl_history, interrupted_visits):
-    """
-        Analyze crawl_history and interrupted_visits to display general
-        success statistics
-        This function should be given the all entries in the crawl_history and
-        interrupted_visits table
+    """ Analyzes crawl_history and interrupted_visits to display general
+        success statistics grouped by command_sequence
+
+        Parameters
+        ----------
+        crawl_history: dataframe
+            The full ``crawl_history`` dataframe
+        interrupted_visits: dataframe
+            The full ``interrupted_visits`` dataframe
+
+        Examples
+        --------
+        >>> from openwpm_utils.s3 import PySparkS3Dataset
+        >>> dataset = PySparkS3Dataset(sc, s3_directory=DB, s3_bucket=S3_BUCKET)
+        >>> crawl_history = dataset.read_table('crawl_history', mode="all")
+        >>> incomplete = dataset.read_table('incomplete_visits', mode="all")
+        >>> display_crawl_history_per_command_sequence(crawl_history, incomplete)
+
     """
     crawl_history.groupBy("command").count().show()
 
@@ -80,7 +93,25 @@ def display_crawl_history_per_command_sequence(crawl_history, interrupted_visits
 
 
 def display_crawl_history_per_website(crawl_history, interrupted_visits):
-    # Analyzing status per website
+    """ Analyzes crawl_history and interrupted_visits to display general
+        success statistics grouped by website
+
+        Parameters
+        ----------
+        crawl_history: dataframe
+            The full ``crawl_history`` dataframe
+        interrupted_visits: dataframe
+            The full ``interrupted_visits`` dataframe
+
+        Examples
+        --------
+        >>> from openwpm_utils.s3 import PySparkS3Dataset
+        >>> dataset = PySparkS3Dataset(sc, s3_directory=DB, s3_bucket=S3_BUCKET)
+        >>> crawl_history = dataset.read_table('crawl_history', mode="all")
+        >>> incomplete = dataset.read_table('incomplete_visits', mode="all")
+        >>> display_crawl_history_per_website(crawl_history, incomplete)
+
+    """
     visit_id_and_worst_status = get_worst_status_per_visit_id(crawl_history)
 
     def extract_website_from_arguments(arguments):
