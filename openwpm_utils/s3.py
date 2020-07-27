@@ -80,24 +80,10 @@ class PySparkS3Dataset(object):
             )
         return table
 
-    def read_content(self, content_hash):
-        """Read the content corresponding to `content_hash`.
-
-        NOTE: This can only be run in the driver process since it requires
-              access to the spark context
-        """
-        return self._spark_context.textFile(self._s3_content_loc % content_hash)
-
     def collect_content(self, content_hash, beautify=False):
-        """Collect content for `content_hash` to driver
-
-        NOTE: This can only be run in the driver process since it requires
-              access to the spark context
-        """
-        content = "".join(self.read_content(content_hash).collect())
-        if beautify:
-            return jsbeautifier.beautify(content)
-        return content
+        """Collect content by directly connecting to S3 via boto3"""
+        non_spark_dataset = S3Dataset(self._s3_directory, self._s3_bucket)
+        return non_spark_dataset.collect_content(content_hash=content_hash, beautify=beautify)
 
 
 class S3Dataset(object):
