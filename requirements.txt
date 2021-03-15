@@ -6,3 +6,4 @@ plyvel
 pyarrow
 pyspark
 s3fs
+abp-blocklist-parser
