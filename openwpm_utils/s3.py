@@ -6,7 +6,6 @@ import jsbeautifier
 import pyarrow.parquet as pq
 import pyspark.sql.functions as F
 import s3fs
-import six
 from botocore.exceptions import ClientError
 from pyarrow.filesystem import S3FSWrapper  # noqa
 from pyspark.sql import SQLContext
@@ -148,7 +147,7 @@ class S3Dataset(object):
                 Bucket=self._s3_bucket, Key=self._content_key % content_hash
             )
             body = obj["Body"]
-            compressed_content = six.BytesIO(body.read())
+            compressed_content = body.read()
             body.close()
         except ClientError as e:
             if e.response["Error"]["Code"] != "NoSuchKey":
