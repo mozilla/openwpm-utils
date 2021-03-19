@@ -1,9 +1,11 @@
+abp-blocklist-parser
 boto3
 domain_utils
+gcsfs
+google-cloud-storage
 jsbeautifier
 pandas
 plyvel
 pyarrow
 pyspark
 s3fs
-abp-blocklist-parser
