@@ -77,6 +77,9 @@ def get_option_dict(url, top_level_url, resource_type=None):
                 % resource_type
             )
     options["domain"] = urlparse(top_level_url).hostname
+    if options["domain"] == None:
+        # If somehow the top_level_url should be unparseable
+        return None
 
     # Add third-party option if third party. Value doesn't matter.
     if du.get_ps_plus_1(url) != du.get_ps_plus_1(top_level_url):
@@ -92,12 +95,16 @@ def prepare_get_matching_rules(blockers: List[BlockListParser]):
 
         matching_rules = set()
         options = get_option_dict(url, top_level_url, resource_type)
+        if options is None:
+            print(f"Something went wrong when handling {url} on top level URL {top_level_url}")
+            return
 
         for blocker in blockers:
             result = blocker.should_block_with_items(url, options=options)
             if result is not None and result[0] == "blacklisted":
                 matching_rules = matching_rules.union(result[1])
-            if len(matching_rules) > 0:
-                return tuple(matching_rules)
+
+        if len(matching_rules) > 0:
+            return tuple(matching_rules)
 
     return F.udf(get_matching_rules, ArrayType(StringType()))
