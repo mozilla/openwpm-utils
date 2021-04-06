@@ -132,14 +132,13 @@ class PySparkGCSDataset(GCSDataset):
 
         if mode == "all":
             table = table
-        if mode == "failed":
+        elif mode == "failed":
             table = self._filter.dirty_table(table)
-        if mode == "successful":
+        elif mode == "successful":
             table = self._filter.clean_table(table)
         else:
             raise AssertionError(
-                f"Mode was ${mode},"
-                "allowed modes are 'all', 'failed' and 'successful'"
+                f"Mode was {mode}," "allowed modes are 'all', 'failed' and 'successful'"
             )
 
         if columns is not None:

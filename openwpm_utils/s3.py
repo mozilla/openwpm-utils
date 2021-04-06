@@ -131,9 +131,9 @@ class PySparkS3Dataset(S3Dataset):
         table = self._sql_context.read.parquet(self._s3_table_loc % table_name)
         if mode == "all":
             table = table
-        if mode == "failed":
+        elif mode == "failed":
             table = self._filter.dirty_table(table)
-        if mode == "successful":
+        elif mode == "successful":
             table = self._filter.clean_table(table)
         else:
             raise AssertionError(
