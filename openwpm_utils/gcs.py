@@ -36,7 +36,7 @@ class GCSDataset(object):
         self._kwargs = kwargs
         self._bucket = bucket
         self._base_dir = base_dir
-        self._table_location_format_string = f"{bucket}/{base_dir}/visits/%s"
+        self._table_location_format_string = f"{bucket}/{base_dir}/%s"
         self._content_key = f"{base_dir}/content/%s.gz"
         self._gcsfs = gcsfs.GCSFileSystem(**kwargs)
 
