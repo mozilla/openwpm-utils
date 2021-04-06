@@ -1,21 +1,23 @@
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import gcsfs
-from google.api_core.exceptions import NotFound
 import jsbeautifier
 import pyarrow.parquet as pq
 import pyspark.sql.functions as F
 from google.cloud import storage
-from pyspark.context import SparkContext
-from pyspark.sql import SQLContext, DataFrame
 from pandas import DataFrame as PandasDataFrame
+from pyspark.sql import DataFrame
+from pyspark.sql.session import SparkSession
 
-from openwpm_utils.crawlhistory import get_worst_status_per_visit_id
+from openwpm_utils.dataquality import TableFilter
 
 
 class GCSDataset(object):
     def __init__(
-        self, base_dir: str, bucket: Optional[str] = "openwpm-data", **kwargs
+        self,
+        base_dir: str,
+        bucket: Optional[str] = "openwpm-data",
+        **kwargs: Dict[Any, Any],
     ) -> None:
         """Helper class to load OpenWPM datasets from GCS using pandas
 
@@ -38,7 +40,7 @@ class GCSDataset(object):
         self._content_key = f"{base_dir}/content/%s.gz"
         self._gcsfs = gcsfs.GCSFileSystem(**kwargs)
 
-    def read_table(self, table_name: str, columns: List[str]=None) -> PandasDataFrame:
+    def read_table(self, table_name: str, columns: List[str] = None) -> PandasDataFrame:
         """Read `table_name` from OpenWPM dataset into a pandas dataframe.
 
         Parameters
@@ -79,10 +81,10 @@ class GCSDataset(object):
 class PySparkGCSDataset(GCSDataset):
     def __init__(
         self,
-        spark_context: SparkContext,
+        spark_session: SparkSession,
         base_dir: str,
         bucket: str = "openwpm-data",
-        **kwargs,
+        **kwargs: Dict[Any, Any],
     ) -> None:
         """Helper class to load OpenWPM datasets from GCS using PySpark
 
@@ -97,23 +99,19 @@ class PySparkGCSDataset(GCSDataset):
             The bucket name on GCS. Defaults to `openwpm-data`.
         """
         super().__init__(base_dir, bucket, **kwargs)
-        self._spark_context = spark_context
-        self._sql_context = SQLContext(spark_context)
+        self._spark_session = spark_session
         self._table_location_format_string = (
             f"gs://{self._table_location_format_string}"
         )
-        self._incomplete_visit_ids = self.read_table(
-            "incomplete_visits", mode="all"
-        ).select("visit_id")
+        incomplete_visits = self.read_table("incomplete_visits", mode="all")
         crawl_history = self.read_table("crawl_history", mode="all")
-        self._failed_visit_ids = (
-            get_worst_status_per_visit_id(crawl_history)
-            .where(F.col("worst_status") != "ok")
-            .select("visit_id")
-        )
+        self._filter = TableFilter(incomplete_visits, crawl_history)
 
     def read_table(
-        self, table_name: str, columns: Optional[List[str]] = None, mode: str = "successful"
+        self,
+        table_name: str,
+        columns: Optional[List[str]] = None,
+        mode: str = "successful",
     ) -> DataFrame:
         """Read `table_name` from OpenWPM dataset into a pyspark dataframe.
 
@@ -128,24 +126,23 @@ class PySparkGCSDataset(GCSDataset):
             Success is determined per visit_id. A visit_id is failed
             if one of it's commands failed or if it's in the interrupted table
         """
-        table = self._sql_context.read.parquet(
+        table = self._spark_session.read.parquet(
             self._table_location_format_string % table_name
         )
-        if columns is not None:
-            table = table.select(columns)
+
         if mode == "all":
-            return table
+            table = table
         if mode == "failed":
-            return table.join(self._failed_visit_ids, "visit_id", how="inner").union(
-                table.join(self._incomplete_visit_ids, "visit_id", how="inner")
-            )
+            table = self._filter.dirty_table(table)
         if mode == "successful":
-            return table.join(self._failed_visit_ids, "visit_id", how="leftanti").join(
-                self._incomplete_visit_ids, "visit_id", how="leftanti"
-            )
+            table = self._filter.clean_table(table)
         else:
             raise AssertionError(
                 f"Mode was ${mode},"
                 "allowed modes are 'all', 'failed' and 'successful'"
             )
+
+        if columns is not None:
+            table = table.select(columns)
+
         return table

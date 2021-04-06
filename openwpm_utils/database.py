@@ -1,6 +1,7 @@
+import zlib
+
 import jsbeautifier
 import plyvel
-import zlib
 
 # SQLite
 
@@ -17,12 +18,12 @@ def fetchiter(cursor, arraysize=10000):
 
 def list_placeholder(length, is_pg=False):
     """Returns a (?,?,?,?...) string of the desired length"""
-    return '(' + '?,'*(length-1) + '?)'
+    return "(" + "?," * (length - 1) + "?)"
 
 
 def optimize_db(cursor):
     """Set options to make sqlite more efficient on a high memory machine"""
-    cursor.execute("PRAGMA cache_size = -%i" % (0.1 * 10**7))  # 10 GB
+    cursor.execute("PRAGMA cache_size = -%i" % (0.1 * 10 ** 7))  # 10 GB
     # Store temp tables, indicies in memory
     cursor.execute("PRAGMA temp_store = 2")
 
@@ -41,16 +42,18 @@ def build_index(cursor, column, tables):
 # Script content stored in LevelDB databases by content hash
 
 
-def get_leveldb(db_path, compression='snappy'):
+def get_leveldb(db_path, compression="snappy"):
     """
     Returns an open handle for a leveldb database
     with proper configuration settings.
     """
-    db = plyvel.DB(db_path,
-                   lru_cache_size=10**9,
-                   write_buffer_size=128*10**4,
-                   bloom_filter_bits=128,
-                   compression=compression)
+    db = plyvel.DB(
+        db_path,
+        lru_cache_size=10 ** 9,
+        write_buffer_size=128 * 10 ** 4,
+        bloom_filter_bits=128,
+        compression=compression,
+    )
     return db
 
 
@@ -69,12 +72,10 @@ def get_url_content(url, sqlite_cur, ldb_con, beautify=True, visit_id=None):
     visit_id : int
         (optional) `visit_id` of the page visit where this URL was loaded
     """
-    return get_url_content_with_hash(
-        url, sqlite_cur, ldb_con, beautify, visit_id)[1]
+    return get_url_content_with_hash(url, sqlite_cur, ldb_con, beautify, visit_id)[1]
 
 
-def get_url_content_with_hash(url, sqlite_cur, ldb_con,
-                              beautify=True, visit_id=None):
+def get_url_content_with_hash(url, sqlite_cur, ldb_con, beautify=True, visit_id=None):
     """Return javascript content for given url.
     Parameters
     ----------
@@ -92,15 +93,15 @@ def get_url_content_with_hash(url, sqlite_cur, ldb_con,
     if visit_id is not None:
         sqlite_cur.execute(
             "SELECT content_hash FROM http_responses WHERE "
-            "visit_id = ? AND url = ? LIMIT 1;", (visit_id, url))
+            "visit_id = ? AND url = ? LIMIT 1;",
+            (visit_id, url),
+        )
     else:
         sqlite_cur.execute(
-            "SELECT content_hash FROM http_responses WHERE url = ? LIMIT 1;",
-            (url,))
+            "SELECT content_hash FROM http_responses WHERE url = ? LIMIT 1;", (url,)
+        )
     content_hash = sqlite_cur.fetchone()
-    if (content_hash is None
-            or len(content_hash) == 0
-            or content_hash[0] is None):
+    if content_hash is None or len(content_hash) == 0 or content_hash[0] is None:
         return
     content_hash = content_hash[0]
     content = get_content(ldb_con, content_hash, beautify=beautify)
@@ -109,8 +110,7 @@ def get_url_content_with_hash(url, sqlite_cur, ldb_con,
     return (content_hash, content)
 
 
-def get_channel_content(visit_id, channel_id,
-                        sqlite_cur, ldb_con, beautify=True):
+def get_channel_content(visit_id, channel_id, sqlite_cur, ldb_con, beautify=True):
     """Return javascript content for given channel_id.
     Parameters
     ----------
@@ -126,11 +126,13 @@ def get_channel_content(visit_id, channel_id,
         Control weather or not to beautify output
     """
     return get_channel_content_with_hash(
-        visit_id, channel_id, sqlite_cur, ldb_con, beautify)[1]
+        visit_id, channel_id, sqlite_cur, ldb_con, beautify
+    )[1]
 
 
-def get_channel_content_with_hash(visit_id, channel_id,
-                                  sqlite_cur, ldb_con, beautify=True):
+def get_channel_content_with_hash(
+    visit_id, channel_id, sqlite_cur, ldb_con, beautify=True
+):
     """Return javascript content for given channel_id.
     Parameters
     ----------
@@ -148,12 +150,10 @@ def get_channel_content_with_hash(visit_id, channel_id,
     sqlite_cur.execute(
         "SELECT content_hash FROM http_responses "
         "WHERE channel_id = ? AND visit_id = ? LIMIT 1;",
-        (channel_id, visit_id)
+        (channel_id, visit_id),
     )
     content_hash = sqlite_cur.fetchone()
-    if (content_hash is None
-            or len(content_hash) == 0
-            or content_hash[0] is None):
+    if content_hash is None or len(content_hash) == 0 or content_hash[0] is None:
         return
     content_hash = content_hash[0]
     content = get_content(ldb_con, content_hash, beautify=beautify)
@@ -162,7 +162,7 @@ def get_channel_content_with_hash(visit_id, channel_id,
     return (content_hash, content)
 
 
-def get_content(db, content_hash, compression='snappy', beautify=True):
+def get_content(db, content_hash, compression="snappy", beautify=True):
     """ Returns decompressed content from javascript leveldb database """
     if content_hash is None:
         print("ERROR: content_hash can't be None...")
@@ -171,12 +171,14 @@ def get_content(db, content_hash, compression='snappy', beautify=True):
     if content is None:
         print("ERROR: content hash: %s NOT FOUND" % content_hash)
         return
-    supported = ['snappy', 'none', 'gzip']
+    supported = ["snappy", "none", "gzip"]
     if compression not in supported:
-        print("Unsupported compression type %s. Only %s "
-              "are the supported options." % (compression, str(supported)))
+        print(
+            "Unsupported compression type %s. Only %s "
+            "are the supported options." % (compression, str(supported))
+        )
         return
-    elif compression == 'gzip':
+    elif compression == "gzip":
         try:
             content = zlib.decompress(content, zlib.MAX_WBITS | 16)
         except Exception:

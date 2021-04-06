@@ -8,13 +8,15 @@ import pyspark.sql.functions as F
 import s3fs
 from botocore.exceptions import ClientError
 from pyarrow.filesystem import S3FSWrapper  # noqa
-from pyspark.sql import SQLContext
+from pyspark import SparkContext
+from pyspark.sql import DataFrame, SQLContext
 
 from openwpm_utils.crawlhistory import get_worst_status_per_visit_id
+from openwpm_utils.dataquality import TableFilter
 
 
-class S3Dataset(object):
-    def __init__(self, s3_directory, s3_bucket="openwpm-crawls"):
+class S3Dataset:
+    def __init__(self, s3_directory: str, s3_bucket: str = "openwpm-crawls"):
         """Helper class to load OpenWPM datasets from S3 using pandas
 
         This dataset wrapper is safe to use by spark worker processes, as it
@@ -82,8 +84,14 @@ class S3Dataset(object):
                 pass
         return content
 
+
 class PySparkS3Dataset(S3Dataset):
-    def __init__(self, spark_context, s3_directory: str, s3_bucket:str="openwpm-crawls"):
+    def __init__(
+        self,
+        spark_context: SparkContext,
+        s3_directory: str,
+        s3_bucket: str = "openwpm-crawls",
+    ) -> None:
         """Helper class to load OpenWPM datasets from S3 using PySpark
 
         Parameters
@@ -96,23 +104,17 @@ class PySparkS3Dataset(S3Dataset):
         s3_bucket : string, optional
             The bucket name on S3. Defaults to `openwpm-crawls`.
         """
-        super.__init__(s3_directory, s3_bucket)
+        super().__init__(s3_directory, s3_bucket)
         self._spark_context = spark_context
         self._sql_context = SQLContext(spark_context)
         self._s3_table_loc = f"s3a://{self._s3_table_loc}"
-        self._incomplete_visit_ids = self.read_table(
-            "incomplete_visits", mode="all"
-        ).select("visit_id")
+        incomplete_visits = self.read_table("incomplete_visits", mode="all")
         crawl_history = self.read_table("crawl_history", mode="all")
-        self._failed_visit_ids = (
-            get_worst_status_per_visit_id(crawl_history)
-            .where(F.col("worst_status") != "ok")
-            .select("visit_id")
-        )
+        self._filter = TableFilter(incomplete_visits, crawl_history)
 
     def read_table(
         self, table_name: str, columns: List[str] = None, mode: str = "successful"
-    ):
+    ) -> DataFrame:
         """Read `table_name` from OpenWPM dataset into a pyspark dataframe.
 
         Parameters
@@ -127,21 +129,19 @@ class PySparkS3Dataset(S3Dataset):
             if one of it's commands failed or if it's in the interrupted table
         """
         table = self._sql_context.read.parquet(self._s3_table_loc % table_name)
-        if columns is not None:
-            table = table.select(columns)
         if mode == "all":
-            return table
+            table = table
         if mode == "failed":
-            return table.join(self._failed_visit_ids, "visit_id", how="inner").union(
-                table.join(self._incomplete_visit_ids, "visit_id", how="inner")
-            )
+            table = self._filter.dirty_table(table)
         if mode == "successful":
-            return table.join(self._failed_visit_ids, "visit_id", how="leftanti").join(
-                self._incomplete_visit_ids, "visit_id", how="leftanti"
-            )
+            table = self._filter.clean_table(table)
         else:
             raise AssertionError(
                 f"Mode was ${mode},"
                 "allowed modes are 'all', 'failed' and 'successful'"
             )
+
+        if columns is not None:
+            table = table.select(columns)
+
         return table

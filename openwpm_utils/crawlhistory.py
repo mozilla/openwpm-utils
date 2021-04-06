@@ -1,6 +1,7 @@
 import json
 
 import pyspark.sql.functions as F
+from pyspark.sql import DataFrame
 from pyspark.sql.types import StringType
 
 reduce_to_worst_command_status = (
@@ -25,29 +26,33 @@ reduce_to_best_command_status = (
 
 def get_worst_status_per_visit_id(crawl_history):
     """Adds column `worst_status`"""
-    return (crawl_history.groupBy("visit_id")
-            .agg(F.collect_list("command_status").alias("command_status"))
-            .withColumn("worst_status",reduce_to_worst_command_status))
+    return (
+        crawl_history.groupBy("visit_id")
+        .agg(F.collect_list("command_status").alias("command_status"))
+        .withColumn("worst_status", reduce_to_worst_command_status)
+    )
 
 
-def display_crawl_history_per_command_sequence(crawl_history, interrupted_visits):
-    """ Analyzes crawl_history and interrupted_visits to display general
-        success statistics grouped by command_sequence
+def display_crawl_history_per_command_sequence(
+    crawl_history: DataFrame, interrupted_visits: DataFrame
+) -> DataFrame:
+    """Analyzes crawl_history and interrupted_visits to display general
+    success statistics grouped by command_sequence
 
-        Parameters
-        ----------
-        crawl_history: dataframe
-            The full ``crawl_history`` dataframe
-        interrupted_visits: dataframe
-            The full ``interrupted_visits`` dataframe
+    Parameters
+    ----------
+    crawl_history
+        The full ``crawl_history`` dataframe
+    interrupted_visits
+        The full ``interrupted_visits`` dataframe
 
-        Examples
-        --------
-        >>> from openwpm_utils.s3 import PySparkS3Dataset
-        >>> dataset = PySparkS3Dataset(sc, s3_directory=DB, s3_bucket=S3_BUCKET)
-        >>> crawl_history = dataset.read_table('crawl_history', mode="all")
-        >>> incomplete = dataset.read_table('incomplete_visits', mode="all")
-        >>> display_crawl_history_per_command_sequence(crawl_history, incomplete)
+    Examples
+    --------
+    >>> from openwpm_utils.s3 import PySparkS3Dataset
+    >>> dataset = PySparkS3Dataset(sc, s3_directory=DB, s3_bucket=S3_BUCKET)
+    >>> crawl_history = dataset.read_table('crawl_history', mode="all")
+    >>> incomplete = dataset.read_table('incomplete_visits', mode="all")
+    >>> display_crawl_history_per_command_sequence(crawl_history, incomplete)
 
     """
     crawl_history.groupBy("command").count().show()
@@ -92,24 +97,26 @@ def display_crawl_history_per_command_sequence(crawl_history, interrupted_visits
     )
 
 
-def display_crawl_history_per_website(crawl_history, interrupted_visits):
-    """ Analyzes crawl_history and interrupted_visits to display general
-        success statistics grouped by website
+def display_crawl_history_per_website(
+    crawl_history: DataFrame, interrupted_visits: DataFrame
+) -> None:
+    """Analyzes crawl_history and interrupted_visits to display general
+    success statistics grouped by website
 
-        Parameters
-        ----------
-        crawl_history: dataframe
-            The full ``crawl_history`` dataframe
-        interrupted_visits: dataframe
-            The full ``interrupted_visits`` dataframe
+    Parameters
+    ----------
+    crawl_history: dataframe
+        The full ``crawl_history`` dataframe
+    interrupted_visits: dataframe
+        The full ``interrupted_visits`` dataframe
 
-        Examples
-        --------
-        >>> from openwpm_utils.s3 import PySparkS3Dataset
-        >>> dataset = PySparkS3Dataset(sc, s3_directory=DB, s3_bucket=S3_BUCKET)
-        >>> crawl_history = dataset.read_table('crawl_history', mode="all")
-        >>> incomplete = dataset.read_table('incomplete_visits', mode="all")
-        >>> display_crawl_history_per_website(crawl_history, incomplete)
+    Examples
+    --------
+    >>> from openwpm_utils.s3 import PySparkS3Dataset
+    >>> dataset = PySparkS3Dataset(sc, s3_directory=DB, s3_bucket=S3_BUCKET)
+    >>> crawl_history = dataset.read_table('crawl_history', mode="all")
+    >>> incomplete = dataset.read_table('incomplete_visits', mode="all")
+    >>> display_crawl_history_per_website(crawl_history, incomplete)
 
     """
     visit_id_and_worst_status = get_worst_status_per_visit_id(crawl_history)
@@ -134,7 +141,7 @@ def display_crawl_history_per_website(crawl_history, interrupted_visits):
     best_status_per_website = (
         visit_id_website_status.groupBy("website")
         .agg(F.collect_list("worst_status").alias("command_status"))
-        .withColumn("best_status",reduce_to_best_command_status)
+        .withColumn("best_status", reduce_to_best_command_status)
     )
 
     total_number_websites = best_status_per_website.count()

@@ -1,5 +1,9 @@
-from pyspark.sql.functions import countDistinct, col, isnan, lit, sum, count, when
+import pyspark.sql.functions as F
 from pyspark.mllib.stat import Statistics
+from pyspark.sql.dataframe import DataFrame
+from pyspark.sql.functions import col, count, countDistinct, isnan, lit, sum, when
+
+from openwpm_utils.crawlhistory import get_worst_status_per_visit_id
 
 
 def count_not_null(c, nan_as_null=False):
@@ -53,3 +57,23 @@ def check_df(df, skip_null_check=True):
         "\nNumber of records with visit_id == -1: %d"
         % df.where(df.visit_id == -1).count()
     )
+
+
+class TableFilter:
+    def __init__(self, incomplete_visits, crawl_history):
+        self._incomplete_visit_ids = incomplete_visits.select("visit_id")
+        self._failed_visit_ids = (
+            get_worst_status_per_visit_id(crawl_history)
+            .where(F.col("worst_status") != "ok")
+            .select("visit_id")
+        )
+
+    def clean_table(self, table: DataFrame) -> DataFrame:
+        return table.join(self._failed_visit_ids, "visit_id", how="leftanti").join(
+            self._incomplete_visit_ids, "visit_id", how="leftanti"
+        )
+
+    def dirty_table(self, table: DataFrame) -> DataFrame:
+        return table.join(self._failed_visit_ids, "visit_id", how="inner").union(
+            table.join(self._incomplete_visit_ids, "visit_id", how="inner")
+        )
