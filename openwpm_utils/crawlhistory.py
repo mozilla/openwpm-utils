@@ -35,7 +35,7 @@ def get_worst_status_per_visit_id(crawl_history):
 
 def display_crawl_history_per_command_sequence(
     crawl_history: DataFrame, interrupted_visits: DataFrame
-) -> DataFrame:
+) -> None:
     """Analyzes crawl_history and interrupted_visits to display general
     success statistics grouped by command_sequence
 
@@ -133,7 +133,7 @@ def display_crawl_history_per_website(
         F.col("command") == "GetCommand"
     ).withColumn("website", udf_extract_website_from_arguments("arguments"))
 
-    visit_id_to_website = visit_id_to_website[["visit_id", "website"]]
+    visit_id_to_website = visit_id_to_website.select("visit_id", "website")
 
     visit_id_website_status = visit_id_and_worst_status.join(
         visit_id_to_website, "visit_id"

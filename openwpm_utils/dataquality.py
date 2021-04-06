@@ -60,7 +60,7 @@ def check_df(df, skip_null_check=True):
 
 
 class TableFilter:
-    def __init__(self, incomplete_visits, crawl_history):
+    def __init__(self, incomplete_visits: DataFrame, crawl_history: DataFrame) -> None:
         self._incomplete_visit_ids = incomplete_visits.select("visit_id")
         self._failed_visit_ids = (
             get_worst_status_per_visit_id(crawl_history)
