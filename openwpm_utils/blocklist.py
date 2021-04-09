@@ -1,12 +1,11 @@
+from typing import Any, List, Optional, Set, Tuple
 from urllib.parse import urlparse
+
 import domain_utils as du
-from typing import List
-
-import requests
 import pyspark.sql.functions as F
-from pyspark.sql.types import *
-
+import requests
 from abp_blocklist_parser import BlockListParser
+from pyspark.sql.types import ArrayType, StringType
 
 # Mapping from
 # https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/webRequest/ResourceType
@@ -47,7 +46,7 @@ type_to_option = {
 
 def get_option_dict(url, top_level_url, resource_type=None):
     """Build an options dict for BlockListParser.
-    
+
     These options are checked here:
     * https://github.com/englehardt/abp-blocklist-parser/blob/40f6bb5b91ea403b7b9852a16d6c57d5ec26cf7f/abp_blocklist_parser/RegexParser.py#L104-L117
     * https://github.com/englehardt/abp-blocklist-parser/blob/40f6bb5b91ea403b7b9852a16d6c57d5ec26cf7f/abp_blocklist_parser/RegexParser.py#L240-L248
@@ -87,17 +86,21 @@ def get_option_dict(url, top_level_url, resource_type=None):
     return options
 
 
-def prepare_get_matching_rules(blockers: List[BlockListParser]):
-    def get_matching_rules(url, top_level_url, resource_type):
+def prepare_get_matching_rules(blockers: List[BlockListParser]) -> Any:
+    def get_matching_rules(
+        url: str, top_level_url: str, resource_type: Optional[str]
+    ) -> Optional[Tuple[Any, ...]]:
         # skip top-level requests
         if top_level_url is None:
-            return
+            return None
 
-        matching_rules = set()
+        matching_rules: Set[str] = set()
         options = get_option_dict(url, top_level_url, resource_type)
         if options is None:
-            print(f"Something went wrong when handling {url} on top level URL {top_level_url}")
-            return
+            print(
+                f"Something went wrong when handling {url} on top level URL {top_level_url}"
+            )
+            return None
 
         for blocker in blockers:
             result = blocker.should_block_with_items(url, options=options)
@@ -106,5 +109,6 @@ def prepare_get_matching_rules(blockers: List[BlockListParser]):
 
         if len(matching_rules) > 0:
             return tuple(matching_rules)
+        return None
 
     return F.udf(get_matching_rules, ArrayType(StringType()))

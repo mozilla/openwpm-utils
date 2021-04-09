@@ -1,9 +1,8 @@
 import json
 from datetime import datetime
 
+from domain_utils import get_ps_plus_1
 from pandas import read_sql_query
-
-from .domain import get_ps_plus_1
 
 
 def get_set_of_script_hosts_from_call_stack(call_stack):
@@ -13,8 +12,7 @@ def get_set_of_script_hosts_from_call_stack(call_stack):
         return ""
     stack_frames = call_stack.strip().split("\n")
     for stack_frame in stack_frames:
-        script_url = stack_frame.rsplit(":", 2)[0].\
-            split("@")[-1].split(" line")[0]
+        script_url = stack_frame.rsplit(":", 2)[0].split("@")[-1].split(" line")[0]
         script_urls.add(get_host_from_url(script_url))
     return ", ".join(script_urls)
 
@@ -77,25 +75,24 @@ def get_script_urls_from_call_stack_as_set(call_stack):
         return script_urls
     stack_frames = call_stack.strip().split("\n")
     for stack_frame in stack_frames:
-        script_url = stack_frame.rsplit(":", 2)[0].\
-            split("@")[-1].split(" line")[0]
+        script_url = stack_frame.rsplit(":", 2)[0].split("@")[-1].split(" line")[0]
         script_urls.add(script_url)
     return script_urls
 
 
 def add_col_bare_script_url(js_df):
     """Add a col for script URL without scheme, www and query."""
-    js_df['bare_script_url'] =\
-        js_df['script_url'].map(strip_scheme_www_and_query)
+    js_df["bare_script_url"] = js_df["script_url"].map(strip_scheme_www_and_query)
 
 
 def add_col_set_of_script_urls_from_call_stack(js_df):
-    js_df['stack_scripts'] =\
-        js_df['call_stack'].map(get_set_of_script_urls_from_call_stack)
+    js_df["stack_scripts"] = js_df["call_stack"].map(
+        get_set_of_script_urls_from_call_stack
+    )
 
 
 def add_col_unix_timestamp(df):
-    df['unix_time_stamp'] = df['time_stamp'].map(datetime_from_iso)
+    df["unix_time_stamp"] = df["time_stamp"].map(datetime_from_iso)
 
 
 def datetime_from_iso(iso_date):
@@ -142,43 +139,49 @@ def get_set_cookie(header):
 
 def get_responses_from_visits(con, visit_ids):
     visit_ids_str = "(%s)" % ",".join(str(x) for x in visit_ids)
-    qry = """SELECT r.id, r.crawl_id, r.visit_id, r.url,
+    qry = (
+        """SELECT r.id, r.crawl_id, r.visit_id, r.url,
                 sv.site_url, sv.first_party, sv.site_rank,
                 r.method, r.referrer, r.headers, r.response_status, r.location,
                 r.time_stamp FROM http_responses as r
             LEFT JOIN site_visits as sv
             ON r.visit_id = sv.visit_id
-            WHERE r.visit_id in %s;""" % visit_ids_str
+            WHERE r.visit_id in %s;"""
+        % visit_ids_str
+    )
 
     return read_sql_query(qry, con)
 
 
 def get_requests_from_visits(con, visit_ids):
     visit_ids_str = "(%s)" % ",".join(str(x) for x in visit_ids)
-    qry = """SELECT r.id, r.crawl_id, r.visit_id, r.url, r.top_level_url,
+    qry = (
+        """SELECT r.id, r.crawl_id, r.visit_id, r.url, r.top_level_url,
             sv.site_url, sv.first_party, sv.site_rank,
             r.method, r.referrer, r.headers, r.loading_href, r.req_call_stack,
             r.content_policy_type, r.post_body, r.time_stamp
             FROM http_requests as r
             LEFT JOIN site_visits as sv
             ON r.visit_id = sv.visit_id
-            WHERE r.visit_id in %s;""" % visit_ids_str
+            WHERE r.visit_id in %s;"""
+        % visit_ids_str
+    )
 
     return read_sql_query(qry, con)
 
 
 def get_set_of_script_ps1s_from_call_stack(script_urls):
     if len(script_urls):
-        return ", ".join(
-            set((get_ps_plus_1(x) or "") for x in script_urls.split(", ")))
+        return ", ".join(set((get_ps_plus_1(x) or "") for x in script_urls.split(", ")))
     else:
         return ""
 
 
 def add_col_set_of_script_ps1s_from_call_stack(js_df):
-    js_df['stack_script_ps1s'] =\
-        js_df['stack_scripts'].map(get_set_of_script_ps1s_from_call_stack)
+    js_df["stack_script_ps1s"] = js_df["stack_scripts"].map(
+        get_set_of_script_ps1s_from_call_stack
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass
