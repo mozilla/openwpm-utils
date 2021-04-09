@@ -8,9 +8,11 @@ import pyspark.sql.functions as F
 import s3fs
 from botocore.exceptions import ClientError
 from pyarrow.filesystem import S3FSWrapper  # noqa
-from pyspark.sql import SQLContext
+from pyspark import SparkContext
+from pyspark.sql import DataFrame, SQLContext
 
 from openwpm_utils.crawlhistory import get_worst_status_per_visit_id
+from openwpm_utils.dataquality import TableFilter
 
 
 class S3Dataset(object):
@@ -96,7 +98,7 @@ class PySparkS3Dataset(S3Dataset):
         s3_bucket : string, optional
             The bucket name on S3. Defaults to `openwpm-crawls`.
         """
-        super.__init__(s3_directory, s3_bucket)
+        super().__init__(s3_directory, s3_bucket)
         self._spark_context = spark_context
         self._sql_context = SQLContext(spark_context)
         self._s3_table_loc = f"s3a://{self._s3_table_loc}"
