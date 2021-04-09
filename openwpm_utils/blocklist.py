@@ -86,7 +86,6 @@ def get_option_dict(url, top_level_url, resource_type=None):
         options["third-party"] = True
     return options
 
-
 def prepare_get_matching_rules(blockers: List[BlockListParser]):
     def get_matching_rules(url, top_level_url, resource_type):
         # skip top-level requests
